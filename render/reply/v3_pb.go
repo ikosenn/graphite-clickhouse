@@ -84,8 +84,8 @@ func (v *V3PB) replyDebug(w http.ResponseWriter, r *http.Request, multiData data
 	w.Write(response)
 }
 
-func (v *V3PB) writeBody(writer *bufio.Writer, target, name, function string, from, until, step uint32, points []point.Point) {
-	start, stop, count, getValue := point.FillNulls(points, from, until, step)
+func (v *V3PB) writeBody(writer *bufio.Writer, target, name, function string, from, until, step uint32, points []point.Point, approximateAggregate bool) {
+	start, stop, count, getValue := point.FillNulls(points, from, until, step, approximateAggregate)
 
 	v.b.Reset()
 

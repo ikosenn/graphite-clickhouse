@@ -31,6 +31,7 @@ func (*Pickle) Reply(w http.ResponseWriter, r *http.Request, multiData data.CHRe
 	data := multiData[0].Data
 	from := uint32(multiData[0].From)
 	until := uint32(multiData[0].Until)
+	approximateAggregate := multiData[0].ApproximateAggregate
 
 	logger := scope.Logger(r.Context())
 
@@ -68,7 +69,7 @@ func (*Pickle) Reply(w http.ResponseWriter, r *http.Request, multiData data.CHRe
 		p.Uint32(step)
 		p.SetItem()
 
-		start, end, _, getValue := point.FillNulls(points, from, until, step)
+		start, end, _, getValue := point.FillNulls(points, from, until, step, approximateAggregate)
 
 		p.String("values")
 		p.List()

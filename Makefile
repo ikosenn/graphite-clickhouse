@@ -5,6 +5,7 @@ MODULE:=github.com/lomik/graphite-clickhouse
 
 GO ?= go
 export GOFLAGS +=  -mod=vendor
+export GOFLAGS +=  -buildvcs=false
 export GO111MODULE := on
 TEMPDIR:=$(shell mktemp -d)
 

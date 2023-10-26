@@ -50,15 +50,20 @@ func Uniq(points []Point) []Point {
 
 // FillNulls accepts an ordered []Point for one metric and returns a generator that will return all points for specific
 // interval. Generator returns EmptyPoint when it's finished
-func FillNulls(points []Point, from, until, step uint32) (start, stop, count uint32, getter GetValueOrNaN) {
+func FillNulls(points []Point, from, until, step uint32, approximateAggregate bool) (start, stop, count uint32, getter GetValueOrNaN) {
 	start = from - (from % step)
-	if start < from {
-		start += step
+	if !approximateAggregate {
+		if start < from {
+			start += step
+		}
+		stop = until - (until % step) + step
+	} else {
+		stop = until - (until % step)
 	}
-	stop = until - (until % step) + step
 	count = (stop - start) / step
 	last := start - step
 	currentPoint := 0
+	fmt.Printf("Start %d, Stop %d, Until %d, From %d, Count %d, Last %d\n", start, stop, until, from, count, last)
 	var metricID uint32
 	if len(points) > 0 {
 		metricID = points[0].MetricID
@@ -69,10 +74,12 @@ func FillNulls(points []Point, from, until, step uint32) (start, stop, count uin
 		}
 		for i := currentPoint; i < len(points); i++ {
 			point := points[i]
+			//fmt.Printf("Point Time %d, last %d, start %d, stop %d\n", point.Time, last, start, stop)
 			if metricID != point.MetricID {
 				return 0, fmt.Errorf("the point MetricID %d differs from other %d: %w", point.MetricID, metricID, ErrWrongMetricID)
 			}
 			if point.Time < start {
+				//fmt.Println("Skipped Time < start")
 				// Points begin before request's start
 				currentPoint++
 				continue
@@ -82,18 +89,22 @@ func FillNulls(points []Point, from, until, step uint32) (start, stop, count uin
 				return 0, fmt.Errorf("the time is less or equal to previous %d < %d: %w", point.Time, last, ErrPointsUnsorted)
 			}
 			if stop <= point.Time {
+				//fmt.Println("stop <= Point.Time")
 				break
 			}
 			if last+step < point.Time {
+				//fmt.Println("Last+step < pTime")
 				// There are nulls in slice
 				last += step
 				return math.NaN(), nil
 			}
+			//fmt.Println("Last but not least")
 			last = point.Time
 			currentPoint = i + 1
 			return point.Value, nil
 		}
 		if last+step < stop {
+			//fmt.Println("Still Not done")
 			last += step
 			return math.NaN(), nil
 		}

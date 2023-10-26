@@ -68,7 +68,11 @@ type conditions struct {
 	aggregated bool
 	// step is used in requests for proper until/from calculation. It's max(steps) for non-aggregated
 	// requests and LCM(steps) for aggregated requests
+	// If maxDataPoint is provided then step is max(maxDataPoint, LCM(steps)) for aggregated requests.
 	step int64
+	// step is used in requests for proper until/from calculation. It's max(steps) for non-aggregated
+	// requests and LCM(steps) for aggregated requests
+	rStep int64
 	// from is aligned to step
 	from int64
 	// until is aligned to step
@@ -88,6 +92,8 @@ type conditions struct {
 	metricsRequested []string
 	metricsUnreverse []string
 	metricsLookup    []string
+	// if true, Start and From are not aligned to the aggregate step value
+	approximateAggregate bool
 }
 
 func newQuery(cfg *config.Config, targets int) *query {
@@ -233,12 +239,12 @@ func (q *query) getDataPoints(ctx context.Context, cond *conditions) error {
 	}
 
 	data.AM = cond.AM
-
 	q.appendReply(CHResponse{
 		Data:                 data.Data,
 		From:                 cond.From,
 		Until:                cond.Until,
 		AppendOutEmptySeries: cond.appendEmptySeries,
+		ApproximateAggregate: cond.approximateAggregate,
 	})
 	return nil
 }
@@ -341,14 +347,26 @@ func (c *conditions) setStep(cStep *commonStep) {
 		c.step = -1
 		return
 	}
-	step = dry.Max(rStep, dry.Ceil(c.Until-c.From, c.MaxDataPoints))
-	c.step = dry.CeilToMultiplier(step, rStep)
+	c.rStep = rStep
+	if c.approximateAggregate {
+		c.step = dry.Max(rStep, dry.Ceil(c.Until-c.From, c.MaxDataPoints))
+	} else {
+		step = dry.Max(rStep, dry.Ceil(c.Until-c.From, c.MaxDataPoints))
+		c.step = dry.CeilToMultiplier(step, rStep)
+	}
 	return
 }
 
 func (c *conditions) setFromUntil() {
-	c.from = dry.CeilToMultiplier(c.From, c.step)
-	c.until = dry.FloorToMultiplier(c.Until, c.step) + c.step - 1
+	c.from = dry.CeilToMultiplier(c.From, c.rStep)
+	if c.approximateAggregate {
+		c.from = c.From
+		c.until = c.Until
+	} else {
+		c.from = dry.CeilToMultiplier(c.From, c.step)
+		c.until = dry.FloorToMultiplier(c.Until, c.step) + c.step - 1
+	}
+	//fmt.Printf("From %d, from %d, Until %d, until %d, step %d, rStep %d, MDP: %d", c.From, c.from, c.Until, c.until, c.step, c.rStep, c.MaxDataPoints)
 }
 
 func (c *conditions) setPrewhere() {

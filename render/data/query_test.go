@@ -398,6 +398,7 @@ func TestSetFromUntil(t *testing.T) {
 			cond := &conditions{
 				TimeFrame: &TimeFrame{From: test.in.from, Until: test.in.until},
 				step:      test.in.step,
+				rStep:     test.in.step,
 			}
 			cond.setFromUntil()
 			result := out{cond.from, cond.until}
@@ -462,6 +463,7 @@ func TestGenerateQuery(t *testing.T) {
 				from:    test.in.from,
 				until:   test.in.until,
 				step:    test.in.step,
+				rStep:   test.in.step,
 			}
 			cond.pointsTable = table
 			cond.setPrewhere()

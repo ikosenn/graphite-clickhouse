@@ -17,6 +17,8 @@ type CHResponse struct {
 	Until int64
 	// if true, return points for all metrics, replacing empty results with list of NaN
 	AppendOutEmptySeries bool
+	// if true, Start and From are not aligned to the aggregate step value
+	ApproximateAggregate bool
 }
 
 // CHResponses is a slice of CHResponse
@@ -32,7 +34,7 @@ func (c *CHResponse) ToMultiFetchResponseV2() (*v2pb.MultiFetchResponse, error) 
 
 	addResponse := func(name string, step uint32, points []point.Point) error {
 		from, until := uint32(c.From), uint32(c.Until)
-		start, stop, count, getValue := point.FillNulls(points, from, until, step)
+		start, stop, count, getValue := point.FillNulls(points, from, until, step, c.ApproximateAggregate)
 		values := make([]float64, 0, count)
 		isAbsent := make([]bool, 0, count)
 		for {
@@ -118,7 +120,7 @@ func (c *CHResponse) ToMultiFetchResponseV3() (*v3pb.MultiFetchResponse, error) 
 	data := c.Data
 	addResponse := func(name, function string, step uint32, points []point.Point) error {
 		from, until := uint32(c.From), uint32(c.Until)
-		start, stop, count, getValue := point.FillNulls(points, from, until, step)
+		start, stop, count, getValue := point.FillNulls(points, from, until, step, c.ApproximateAggregate)
 		values := make([]float64, 0, count)
 		for {
 			value, err := getValue()

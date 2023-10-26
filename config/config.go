@@ -243,6 +243,7 @@ type ClickHouse struct {
 
 	TLSParams config.TLS  `toml:"tls"                      json:"tls"                      comment:"mTLS HTTPS configuration for connecting to clickhouse server"                                                                         commented:"true"`
 	TLSConfig *tls.Config `toml:"-"                        json:"-"`
+	ApproximateAggregate bool `toml:"approximate-aggregate"    json:"approxumate-aggregate"   comment:"if true, Start and From are not updated to be divisible by the aggregate function step value while using internal aggregation."`
 }
 
 func clickhouseURLValidate(chURL string) (*url.URL, error) {
@@ -382,6 +383,7 @@ func New() *Config {
 			InternalAggregation:  true,
 			FindLimiter:          limiter.NoopLimiter{},
 			TagsLimiter:          limiter.NoopLimiter{},
+			ApproximateAggregate: false,
 		},
 		Tags: Tags{},
 		Carbonlink: Carbonlink{

@@ -25,7 +25,7 @@ const (
 
 type pb interface {
 	initBuffer()
-	writeBody(writer *bufio.Writer, target, name, function string, from, until, step uint32, points []point.Point)
+	writeBody(writer *bufio.Writer, target, name, function string, from, until, step uint32, points []point.Point, approximateAggregate bool)
 }
 
 func replyProtobuf(p pb, w http.ResponseWriter, r *http.Request, multiData data.CHResponses) {
@@ -70,7 +70,8 @@ func replyProtobuf(p pb, w http.ResponseWriter, r *http.Request, multiData data.
 			}
 
 			for _, a := range data.AM.Get(metricName) {
-				p.writeBody(writer, a.Target, a.DisplayName, function, from, until, step, points)
+				//fmt.Printf("Target: %s, A.DisplayName: %s, function: %s, from: %d, until: %d, step: %d, points: %d, Len: %d\n", a.Target, a.DisplayName, function, from, until, step, points, len(points))
+				p.writeBody(writer, a.Target, a.DisplayName, function, from, until, step, points, d.ApproximateAggregate)
 			}
 		}
 
@@ -79,7 +80,7 @@ func replyProtobuf(p pb, w http.ResponseWriter, r *http.Request, multiData data.
 			for _, metricName := range data.AM.Series(false) {
 				if _, done := writtenMetrics[metricName]; !done {
 					for _, a := range data.AM.Get(metricName) {
-						p.writeBody(writer, a.Target, a.DisplayName, "any", from, until, uint32(data.CommonStep), []point.Point{})
+						p.writeBody(writer, a.Target, a.DisplayName, "any", from, until, uint32(data.CommonStep), []point.Point{}, d.ApproximateAggregate)
 					}
 				}
 			}
